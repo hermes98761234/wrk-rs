@@ -1,0 +1,20 @@
+[workspace]
+members = [
+    "crates/stats",
+    "crates/http",
+    "crates/scripting",
+    "crates/engine",
+    "crates/cli",
+]
+resolver = "2"
+
+[workspace.dependencies]
+tokio = { version = "1", features = ["full"] }
+mlua = { version = "0.10", features = ["lua54", "vendored"] }
+rustls = { version = "0.23", default-features = false, features = ["ring"] }
+tokio-rustls = "0.26"
+webpki-roots = "0.26"
+httparse = "1"
+hdrhistogram = "7"
+clap = { version = "4", features = ["derive"] }
+thiserror = "2"

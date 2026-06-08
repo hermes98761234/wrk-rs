@@ -1,0 +1,13 @@
+[package]
+name = "wrk"
+version = "0.0.1"
+edition = "2021"
+
+[[bin]]
+name = "wrk"
+path = "src/main.rs"
+
+[dependencies]
+clap = { workspace = true }
+wrk-engine = { path = "../engine" }
+wrk-stats = { path = "../stats" }

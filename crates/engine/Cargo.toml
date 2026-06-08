@@ -1,0 +1,15 @@
+[package]
+name = "wrk-engine"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+tokio = { workspace = true }
+mlua = { workspace = true }
+rustls = { workspace = true }
+tokio-rustls = { workspace = true }
+webpki-roots = { workspace = true }
+wrk-stats = { path = "../stats" }
+wrk-http = { path = "../http" }
+wrk-scripting = { path = "../scripting" }
+thiserror = { workspace = true }
