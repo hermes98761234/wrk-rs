@@ -20,15 +20,31 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             use_cross: false
+            bin_ext: ""
           - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             use_cross: true
+            bin_ext: ""
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
             use_cross: false
+            bin_ext: ""
           - os: ubuntu-latest
             target: aarch64-unknown-linux-musl
             use_cross: true
+            bin_ext: ""
+          - os: macos-13
+            target: x86_64-apple-darwin
+            use_cross: false
+            bin_ext: ""
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            use_cross: false
+            bin_ext: ""
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            use_cross: false
+            bin_ext: .exe
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -49,16 +65,18 @@ jobs:
         if: matrix.use_cross
         run: cross build --release --target ${{ matrix.target }} -p wrk
       - name: Strip binary
-        run: strip target/${{ matrix.target }}/release/${{ env.BIN_NAME }} || true
+        if: runner.os != 'Windows'
+        run: strip target/${{ matrix.target }}/release/${{ env.BIN_NAME }}${{ matrix.bin_ext }} || true
       - name: Rename binary
+        shell: bash
         run: |
-          mv target/${{ matrix.target }}/release/${{ env.BIN_NAME }} \
-             target/${{ matrix.target }}/release/${{ env.BIN_NAME }}-${{ matrix.target }}
+          mv "target/${{ matrix.target }}/release/${{ env.BIN_NAME }}${{ matrix.bin_ext }}" \
+             "target/${{ matrix.target }}/release/${{ env.BIN_NAME }}-${{ matrix.target }}${{ matrix.bin_ext }}"
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.BIN_NAME }}-${{ matrix.target }}
-          path: target/${{ matrix.target }}/release/${{ env.BIN_NAME }}-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/${{ env.BIN_NAME }}-${{ matrix.target }}${{ matrix.bin_ext }}
 
   release:
     name: Create GitHub Release
