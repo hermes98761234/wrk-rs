@@ -51,7 +51,7 @@ pub fn print_report(
     let lat_avg = agg.latency.mean();
     let lat_stdev = agg.latency.stdev();
     let lat_max = agg.latency.max() as f64;
-    let lat_plus_stdev_pct = agg.latency.percentile_below((lat_avg + lat_stdev) as u64) as f64;
+    let lat_plus_stdev_pct = agg.latency.percentile_below((lat_avg + lat_stdev) as u64);
 
     let rps = agg.requests as f64 / actual_s;
     let rps_stdev = rps * 0.1; // approximation

@@ -117,7 +117,7 @@ mod tests {
 
     #[test]
     fn parse_url_https_custom_port() {
-        let (scheme, host, port, path) = parse_url("https://example.com:8443/");
+        let (scheme, _host, port, _path) = parse_url("https://example.com:8443/");
         assert_eq!(scheme, "https");
         assert_eq!(port, 8443);
     }
