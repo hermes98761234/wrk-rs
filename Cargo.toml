@@ -5,6 +5,7 @@ members = [
     "crates/scripting",
     "crates/engine",
     "crates/cli",
+    "crates/bench",
 ]
 resolver = "2"
 
