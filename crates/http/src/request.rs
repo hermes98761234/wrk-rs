@@ -9,7 +9,11 @@ pub struct RequestBuilder {
 }
 
 impl RequestBuilder {
-    pub fn new(method: impl Into<String>, path: impl Into<String>, host: impl Into<String>) -> Self {
+    pub fn new(
+        method: impl Into<String>,
+        path: impl Into<String>,
+        host: impl Into<String>,
+    ) -> Self {
         Self {
             method: method.into(),
             path: path.into(),

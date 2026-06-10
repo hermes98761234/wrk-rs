@@ -17,19 +17,25 @@ mod integration_tests {
         let port = listener.local_addr().unwrap().port();
 
         std::thread::spawn(move || {
-            use std::io::{Read, Write};
             loop {
                 if let Ok((mut stream, _)) = listener.accept() {
-                    let response = b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: keep-alive\r\n\r\nOK";
-                    let mut buf = [0u8; 1024];
-                    loop {
-                        match stream.read(&mut buf) {
-                            Ok(0) | Err(_) => break,
-                            Ok(_) => {
-                                if stream.write_all(response).is_err() { break; }
+                    // One thread per connection so keep-alive clients don't
+                    // starve each other.
+                    std::thread::spawn(move || {
+                        use std::io::{Read, Write};
+                        let response = b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: keep-alive\r\n\r\nOK";
+                        let mut buf = [0u8; 1024];
+                        loop {
+                            match stream.read(&mut buf) {
+                                Ok(0) | Err(_) => break,
+                                Ok(_) => {
+                                    if stream.write_all(response).is_err() {
+                                        break;
+                                    }
+                                }
                             }
                         }
-                    }
+                    });
                 }
             }
         });
@@ -57,9 +63,16 @@ mod integration_tests {
 
         let results = spawn_threads(config);
         let total_requests: u64 = results.iter().map(|r| r.stats.requests).sum();
-        let total_errors: u64 = results.iter().map(|r| r.stats.errors).sum();
+        let total_errors: u64 = results
+            .iter()
+            .map(|r| r.stats.errors.socket_total() + r.stats.errors.status)
+            .sum();
 
         assert!(total_requests > 0, "expected non-zero requests, got 0");
-        assert_eq!(total_errors, 0, "expected zero errors, got {}", total_errors);
+        assert_eq!(
+            total_errors, 0,
+            "expected zero errors, got {}",
+            total_errors
+        );
     }
 }

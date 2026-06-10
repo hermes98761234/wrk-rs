@@ -1,40 +1,62 @@
-use clap::Parser;
+use clap::{ArgAction, Parser};
 use std::collections::HashMap;
 use std::time::Duration;
 
 #[derive(Parser, Debug)]
-#[command(name = "wrk", about = "HTTP benchmarking tool")]
+#[command(
+    name = "wrk",
+    about = "HTTP benchmarking tool",
+    version,
+    disable_version_flag = true
+)]
 pub struct Args {
-    /// Number of threads
-    #[arg(short = 't', default_value = "2")]
+    /// Number of threads to use
+    #[arg(short = 't', long = "threads", default_value = "2", value_parser = parse_count)]
     pub threads: usize,
 
-    /// Number of connections
-    #[arg(short = 'c', default_value = "10")]
+    /// Connections to keep open
+    #[arg(short = 'c', long = "connections", default_value = "10", value_parser = parse_count)]
     pub connections: usize,
 
-    /// Duration (e.g. 30s, 1m, 2h)
-    #[arg(short = 'd', default_value = "10s")]
+    /// Duration of test (e.g. 30s, 1m, 2h)
+    #[arg(short = 'd', long = "duration", default_value = "10s")]
     pub duration: String,
 
-    /// Lua script path
-    #[arg(short = 's')]
+    /// Load Lua script file
+    #[arg(short = 's', long = "script")]
     pub script: Option<String>,
 
-    /// Add header (repeatable, format: "Name: Value")
-    #[arg(short = 'H')]
+    /// Add header to request (repeatable, format: "Name: Value")
+    #[arg(short = 'H', long = "header")]
     pub headers: Vec<String>,
 
-    /// Print latency distribution
+    /// Print latency statistics
     #[arg(long)]
     pub latency: bool,
 
-    /// Timeout (e.g. 2s)
+    /// Socket/request timeout (e.g. 2s)
     #[arg(long, default_value = "2s")]
     pub timeout: String,
 
+    /// Print version details
+    #[arg(short = 'v', long = "version", action = ArgAction::Version, value_parser = clap::value_parser!(bool))]
+    pub version: Option<bool>,
+
     /// Target URL
     pub url: String,
+}
+
+/// Parse a count that may carry an SI suffix (1k, 1M, 1G), matching wrk.
+pub fn parse_count(s: &str) -> Result<usize, String> {
+    let (num, mult) = match s.as_bytes().last() {
+        Some(b'k') | Some(b'K') => (&s[..s.len() - 1], 1_000usize),
+        Some(b'M') => (&s[..s.len() - 1], 1_000_000),
+        Some(b'G') => (&s[..s.len() - 1], 1_000_000_000),
+        _ => (s, 1),
+    };
+    num.parse::<usize>()
+        .map(|n| n * mult)
+        .map_err(|_| format!("invalid count: {s}"))
 }
 
 pub fn parse_duration(s: &str) -> Duration {
@@ -127,5 +149,35 @@ mod tests {
         let raw = vec!["Accept: application/json".to_string()];
         let h = parse_headers(&raw);
         assert_eq!(h.get("Accept").unwrap(), "application/json");
+    }
+
+    #[test]
+    fn parse_count_plain_and_si_units() {
+        assert_eq!(parse_count("400").unwrap(), 400);
+        assert_eq!(parse_count("1k").unwrap(), 1_000);
+        assert_eq!(parse_count("2M").unwrap(), 2_000_000);
+        assert_eq!(parse_count("1G").unwrap(), 1_000_000_000);
+        assert!(parse_count("abc").is_err());
+    }
+
+    #[test]
+    fn args_accept_long_flags() {
+        let args = Args::try_parse_from([
+            "wrk",
+            "--threads",
+            "4",
+            "--connections",
+            "1k",
+            "--duration",
+            "30s",
+            "--header",
+            "X-Test: 1",
+            "http://localhost/",
+        ])
+        .unwrap();
+        assert_eq!(args.threads, 4);
+        assert_eq!(args.connections, 1000);
+        assert_eq!(args.duration, "30s");
+        assert_eq!(args.headers, vec!["X-Test: 1".to_string()]);
     }
 }

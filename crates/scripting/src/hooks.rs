@@ -29,7 +29,12 @@ pub fn call_request(lua: &Lua, default_request: &[u8]) -> Result<Vec<u8>> {
     }
 }
 
-pub fn call_response(lua: &Lua, status: u16, headers: &[(String, String)], body: &[u8]) -> Result<()> {
+pub fn call_response(
+    lua: &Lua,
+    status: u16,
+    headers: &[(String, String)],
+    body: &[u8],
+) -> Result<()> {
     if let Ok(f) = lua.globals().get::<mlua::Function>("response") {
         let h = lua.create_table()?;
         for (k, v) in headers {

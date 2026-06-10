@@ -90,8 +90,20 @@ pub fn print_report(
         actual_s,
         format_bytes(agg.bytes as f64),
     );
+    if agg.errors.socket_total() > 0 {
+        println!(
+            "  Socket errors: connect {}, read {}, write {}, timeout {}",
+            agg.errors.connect, agg.errors.read, agg.errors.write, agg.errors.timeout,
+        );
+    }
+    if agg.errors.status > 0 {
+        println!("  Non-2xx or 3xx responses: {}", agg.errors.status);
+    }
     println!("Requests/sec:  {:.2}", rps);
-    println!("Transfer/sec:  {}", format_bytes(agg.bytes as f64 / actual_s));
+    println!(
+        "Transfer/sec:  {}",
+        format_bytes(agg.bytes as f64 / actual_s)
+    );
 }
 
 #[cfg(test)]

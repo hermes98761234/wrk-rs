@@ -1,10 +1,10 @@
+use crate::histogram::{ErrorCounters, ThreadStats};
 use hdrhistogram::Histogram;
-use crate::histogram::ThreadStats;
 
 pub struct AggregateStats {
     pub latency: Histogram<u64>,
     pub requests: u64,
-    pub errors: u64,
+    pub errors: ErrorCounters,
     pub bytes: u64,
     pub duration_us: u64,
 }
@@ -13,14 +13,14 @@ pub fn merge(threads: Vec<ThreadStats>) -> AggregateStats {
     let mut agg = AggregateStats {
         latency: Histogram::new_with_bounds(1, 60_000_000, 3).unwrap(),
         requests: 0,
-        errors: 0,
+        errors: ErrorCounters::default(),
         bytes: 0,
         duration_us: 0,
     };
     for t in threads {
         let _ = agg.latency.add(&t.latency);
         agg.requests += t.requests;
-        agg.errors += t.errors;
+        agg.errors.merge(&t.errors);
         agg.bytes += t.bytes;
         agg.duration_us = agg.duration_us.max(t.duration_us);
     }

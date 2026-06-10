@@ -11,25 +11,32 @@ pub fn setup_wrk_table(lua: &Lua, scheme: &str, host: &str, port: u16) -> Result
     wrk.set("body", "")?;
 
     let host_s = host.to_string();
-    let format_fn = lua.create_function(
-        move |_lua, (method, path, headers, body): (String, String, Option<Table>, Option<String>)| {
-            let mut req = format!("{} {} HTTP/1.1\r\nHost: {}\r\n", method, path, host_s);
-            if let Some(h) = headers {
-                for pair in h.pairs::<String, String>() {
-                    let (k, v) = pair?;
-                    req.push_str(&format!("{}: {}\r\n", k, v));
+    let format_fn =
+        lua.create_function(
+            move |_lua,
+                  (method, path, headers, body): (
+                String,
+                String,
+                Option<Table>,
+                Option<String>,
+            )| {
+                let mut req = format!("{} {} HTTP/1.1\r\nHost: {}\r\n", method, path, host_s);
+                if let Some(h) = headers {
+                    for pair in h.pairs::<String, String>() {
+                        let (k, v) = pair?;
+                        req.push_str(&format!("{}: {}\r\n", k, v));
+                    }
                 }
-            }
-            if let Some(ref b) = body {
-                req.push_str(&format!("Content-Length: {}\r\n", b.len()));
-            }
-            req.push_str("\r\n");
-            if let Some(b) = body {
-                req.push_str(&b);
-            }
-            Ok(req)
-        },
-    )?;
+                if let Some(ref b) = body {
+                    req.push_str(&format!("Content-Length: {}\r\n", b.len()));
+                }
+                req.push_str("\r\n");
+                if let Some(b) = body {
+                    req.push_str(&b);
+                }
+                Ok(req)
+            },
+        )?;
     wrk.set("format", format_fn)?;
 
     lua.globals().set("wrk", wrk)?;

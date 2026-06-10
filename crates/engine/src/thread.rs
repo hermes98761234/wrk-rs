@@ -1,10 +1,10 @@
+use crate::config::BenchConfig;
+use crate::connection::{build_default_request, run_connection};
 use std::sync::Arc;
 use std::time::Instant;
 use tokio::runtime::Builder;
-use wrk_stats::ThreadStats;
 use wrk_scripting::{hooks, table};
-use crate::config::BenchConfig;
-use crate::connection::{build_default_request, run_connection};
+use wrk_stats::ThreadStats;
 
 pub struct ThreadResult {
     pub stats: ThreadStats,
@@ -28,7 +28,9 @@ pub fn spawn_threads(config: BenchConfig) -> Vec<ThreadResult> {
     drop(tx);
 
     let results: Vec<ThreadResult> = rx.into_iter().map(|s| ThreadResult { stats: s }).collect();
-    for h in handles { let _ = h.join(); }
+    for h in handles {
+        let _ = h.join();
+    }
     results
 }
 
@@ -53,7 +55,9 @@ async fn run_thread(thread_id: u32, config: Arc<BenchConfig>) -> ThreadStats {
         let tls_config = rustls::ClientConfig::builder()
             .with_root_certificates(root_store)
             .with_no_client_auth();
-        Some(Arc::new(tokio_rustls::TlsConnector::from(Arc::new(tls_config))))
+        Some(Arc::new(tokio_rustls::TlsConnector::from(Arc::new(
+            tls_config,
+        ))))
     } else {
         None
     };
@@ -77,7 +81,7 @@ async fn run_thread(thread_id: u32, config: Arc<BenchConfig>) -> ThreadStats {
     while let Some(res) = join_set.join_next().await {
         if let Ok(s) = res {
             stats.requests += s.requests;
-            stats.errors += s.errors;
+            stats.errors.merge(&s.errors);
             stats.bytes += s.bytes;
             let _ = stats.latency.add(&s.latency);
         }

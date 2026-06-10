@@ -8,22 +8,26 @@ fn start_echo_server() -> u16 {
     let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
     let port = listener.local_addr().unwrap().port();
     std::thread::spawn(move || {
-        use std::io::{Read, Write};
-        let response =
-            b"HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: keep-alive\r\n\r\nhello";
         loop {
             if let Ok((mut stream, _)) = listener.accept() {
-                let mut buf = [0u8; 4096];
-                loop {
-                    match stream.read(&mut buf) {
-                        Ok(0) | Err(_) => break,
-                        Ok(_) => {
-                            if stream.write_all(response).is_err() {
-                                break;
+                // One thread per connection so keep-alive clients don't
+                // starve each other.
+                std::thread::spawn(move || {
+                    use std::io::{Read, Write};
+                    let response =
+                        b"HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: keep-alive\r\n\r\nhello";
+                    let mut buf = [0u8; 4096];
+                    loop {
+                        match stream.read(&mut buf) {
+                            Ok(0) | Err(_) => break,
+                            Ok(_) => {
+                                if stream.write_all(response).is_err() {
+                                    break;
+                                }
                             }
                         }
                     }
-                }
+                });
             }
         }
     });
